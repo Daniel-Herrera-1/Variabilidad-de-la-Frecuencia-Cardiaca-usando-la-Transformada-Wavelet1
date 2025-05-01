@@ -366,6 +366,11 @@ R\ Las wavelets nos dejan ver detalles de la señal en distintas escalas, cambia
 ---
 R\Esta practica de laboratorio puede tener aplicaciones precisamente en el campo de la cardiologia determinando si hay alguna sobre fatiga, sin embargo también puede tener aplicaciones en el campo de la psicologia determinando como reacción una persona a cierto estimulo psicologico o incluso en deportes para ver la fatoga del atleta.
 
+
+
+- *Daniel Herrera* est.daniela.herreraa@unimilitar.edu.co
+- *Juan Ortiz*    est.juan.ortiz4@unimilitar.edu.co
+
  
 
 
