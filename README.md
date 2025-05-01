@@ -298,7 +298,8 @@ Se calcula la media (mean_rr) y la desviación estándar (std_rr) de los interva
 
 Se calcularon los intervalos R-R a partir de los picos detectados y se representaron gráficamente para observar su comportamiento a lo largo del tiempo. A partir de estos datos, se obtuvo la media y la desviación estándar,  identificando posibles patrones de regularidades o fluctuaciones relevantes.
 
-![image](https://github.com/user-attachments/assets/271346e6-6ac6-4a10-9a0a-f345e3d83d60)
+![image](https://github.com/user-attachments/assets/806bcd0d-0361-4b46-9fb3-86780dd50815)
+
 
 Representa la duración de cada intervalo R-R. Ideal para detectar irregularidades en el ritmo cardíaco.
 
