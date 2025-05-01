@@ -1,21 +1,31 @@
 # Variabilidad-de-la-Frecuencia-Cardiaca-usando-la-Transformada-Wavelet
 
+# Objetivo
 
+Estudiar la variabilidad del ritmo cardíaco (HRV) aplicando la transformada wavelet, con el objetivo de detectar alteraciones en sus patrones frecuenciales y examinar cómo evoluciona la señal cardiaca en el tiempo.
+
+# Requisitos
+* Computador con Pyhton
+* Librerias: Pywavelets
+
+  
 ## Fundamentos Teoricos
 
 ### Nuestro corazón no late siempre a la misma velocidad; entre un latido y el siguiente se producen pequeñas aceleraciones y desaceleraciones. Estas variaciones, conocidas como Variabilidad de la Frecuencia Cardíaca (HRV), nos indican cómo el cuerpo gestiona el estrés, el descanso y las respuestas al entorno.
+
+
 
 ## Control autonomo
 
 **Sistema simpático (acelerador):** eleva las pulsaciones cuando hacemos ejercicio, nos asustamos o nos estresamos.
 
-**Sistema parasimpático (freno):** reduce las pulsaciones cuando estamos relajados, descansando o durmiendo.
+**Sistema parasimpático (relajación y digestion):** reduce las pulsaciones cuando estamos relajados, descansando o durmiendo.
 
 ## ¿Qué mide la HRV?
 
 **La HRV cuantifica las diferencias de tiempo entre latidos sucesivos (intervalos R-R).**
 
-**Una HRV alta sugiere un sistema nervioso autónomo flexible y bien adaptado.**
+**Una HRV alta sugiere un sistema nervioso autónomo, sano flexible y bien adaptado.**
 
 **Una HRV baja puede reflejar fatiga, estrés prolongado o posibles alteraciones de salud.**
 
@@ -33,7 +43,7 @@
 # Adquisicion de la señal 
 
 
-### La señal ECG fue adquirida utilizando un sensor de ECG de superficie conectado a un sistema de adquisición basado en la placa STM32. La grabación se realizó en un sujeto en estado de reposo, sin movimiento, durante un periodo continuo de 5 minutos.
+### La señal ECG fue adquirida utilizando un sensor de ECG de superficie (electrodos) conectado a un sistema de adquisición con la placa STM32. La grabación se realizó en un sujeto en estado de reposo, sin movimiento, durante un periodo continuo de 5 minutos.
 
 ### Características de la adquisición:
 
@@ -47,47 +57,69 @@
 
 - **Condiciones:** sujeto en reposo, en ambiente controlado, algun juego o actividad de respiracion para aumentar frecuencias por ciertos periodos
 
-  *La señal fue almacenada en un archivo de texto (.txt) y posteriormente procesada con Python. A continuación se muestra la señal cruda sin filtrar, representando los valores directamente adquiridos del sensor:*
+# Para el analisis de la señal y el HRV con Python se hizo
+
+conversión de unidades, filtrado digital, detección de picos R, análisis de intervalos R-R y análisis de HRV con transformada wavelet.
+
+---
+
+## 1. Lectura y conversión de datos
 
 ```python
-  import numpy as np
-import matplotlib.pyplot as plt
-from scipy.signal import butter, filtfilt, find_peaks
-import pywt
-import time as tm
-
-# ========= 1. Cargar los datos =========
-
 with open('DANIEL01.txt', 'r') as file:
     data = file.readlines()
-
-# Convertir datos a números
-ecg_signal = np.array([int(x.strip()) for x in data])
-
-# ========= 2. Definir parámetros =========
-
-sampling_rate = 400  # Hz
-lowcut = 0.5  # Hz
-highcut = 40.0  # Hz
-order = 4
-
-time = np.arange(len(ecg_signal)) / sampling_rate
-
-adc_max = 4095
-v_ref = 3.3  # voltios
-ecg_mv = (ecg_signal / adc_max) * v_ref * 1000  # señal en milivoltios
-
-plt.figure(figsize=(15, 5))
-plt.plot(time, ecg_mv, color='gray')
-plt.title('ECG ORIGINAL Escala mv')
-plt.xlabel('Tiempo (s)')
-plt.ylabel('Amplitud (mV)')
-plt.grid(True)
-plt.show()
+senal_ecg = np.array([int(x.strip()) for x in data])
 ```
+
+Lee los valores de un archivo `.txt` donde cada línea representa una muestra de ECG adquirida por un ADC. Luego los convierte a una lista de enteros y la transforma en un arreglo de `numpy`.
+
+---
+### Gráfica 1: Señal original en milivoltios
+
+```python
+plt.plot(time, ecg_mv)
+```
+
 
 ![image](https://github.com/user-attachments/assets/7a1cd509-b354-4069-a14a-12db32e42009)
 ![image](https://github.com/user-attachments/assets/3c9db63d-d91d-4b42-bd0e-408eaf12558f)
+
+## 2. Parámetros de adquisición
+
+```python
+frecuenciamuestreo = 400  # Hz
+lowcut = 0.5  # Hz
+highcut = 40.0  # Hz
+order = 2
+```
+
+- `frecuenciamuestreo`: 400 muestras por segundo.
+- `lowcut`, `highcut`: define un filtro pasa banda útil para eliminar artefactos de baja y alta frecuencia.
+- `order`: orden del filtro (mayor orden = respuesta más selectiva).
+
+---
+
+## 3. Conversión de señal a milivoltios
+
+```python
+adc_max = 4095
+v_ref = 3.3
+ecg_mv = (senal_ecg / adc_max) * v_ref * 1000
+```
+
+Convierte la señal digital (12 bits, 0–4095) a milivoltios. Este paso es fundamental para que la señal sea fisiológicamente interpretable.
+
+---
+
+## 4. Filtrado Butterworth
+
+```python
+filtered_ecg = aplicar_filtro_butterworth(ecg_mv, frecuenciamuestreo, lowcut, highcut, order)
+```
+
+Se usa un filtro digital Butterworth para eliminar el ruido y artefactos, preservando las frecuencias del ECG clínicamente relevantes (0.5–40 Hz).
+
+
 
 *Posteriormente, se aplicó un filtro digital pasabanda Butterworth de orden 4, diseñado con las siguientes características:*
 
@@ -163,7 +195,8 @@ filtered_ecg = aplicar_filtro_butterworth(ecg_mv, sampling_rate, lowcut, highcut
 ```
 - filtra la señal que ya fue convertida a milivoltios (ecg_mv) usando todos los parámetros definidos antes.
 
-### Grafica de la señal filtrada
+### Gráfica 2: Señal ECG filtrada
+
 
 ```python
 
@@ -179,7 +212,7 @@ plt.show()
 ![image](https://github.com/user-attachments/assets/158e4055-02d6-4874-93dd-37a82aa06cdf)
 
 
-## Deteccion de los picos R
+## 5. Deteccion de los picos R
 
 Antes de todo En un electrocardiograma (ECG), un pico R es el punto más alto de un complejo QRS, que representa la despolarización ventricular, es decir, el momento en que los ventrículos del corazón se contraen. Es el componente más prominente del ECG y por eso se suele usar para analizar la frecuencia cardíaca y la variabilidad del ritmo (HRV).
 
@@ -205,7 +238,7 @@ t_peaks = peaks / sampling_rate
 
 - Convierte las posiciones de muestra a tiempo en segundos, útil para graficar o calcular intervalos entre latidos.
 
-### Visualizacion de los picos R y cuantos picos R hay
+### 6. Visualizacion de los picos R y cuantos picos R hay
 
 ```python
 # Visualización
@@ -223,23 +256,121 @@ print(f"Cantidad de picos R detectados: {len(peaks)}")
 
 # Cantidad de picos R detectados: 469
 ```
+### Gráfica 3: Detección de picos R
+
+
 ![image](https://github.com/user-attachments/assets/2dbea8bc-1cb6-49c5-8c60-1fbaee18cdac)
 ![image](https://github.com/user-attachments/assets/3eef1763-4693-4d74-b2e4-78908cd48cb9)
 
 **Cantidad de picos R detectados: 469**
 
-*Obtener los picos R puede ayudar con lo siguiente*
+*Obtener los picos R ayuda con la frecuencia cardíaca, los intervalos R-R (tiempo entre latidos) y lo más importante ealizar análisis de variabilidad (HRV), estrés, fatiga, etc.
+### Gráfica 4: Intervalos R-R
 
-- Calcular la frecuencia cardíaca.
+```python
+rr_intervalos = np.diff(peaks) / frecuenciamuestreo  # en segundos
 
-- Estimar los intervalos R-R (tiempo entre latidos).
+plt.plot(rr_intervalos, marker='o')
+```
+- peaks contiene los índices (en muestras) de los picos detectados en la señal.
 
-- Realizar análisis de variabilidad (HRV), estrés, fatiga, etc.
+- np.diff(peaks) calcula la diferencia entre cada pico consecutivo → da la cantidad de muestras entre latidos.
 
+- Dividir por frecuenciamuestreo (en Hz) convierte esas diferencias de muestras a segundos.
 
+```python
+mean_rr = np.mean(rr_intervalos)
+std_rr = np.std(rr_intervalos)
+print(f"Media de Intervalos R-R: {mean_rr:.4f} s")
+print(f"Desviación estándar de R-R: {std_rr:.4f} s")
 
+#Media de Intervalos R-R: 0.6405 s
+#Desviación estándar de R-R: 0.0686 s
 
+```
+Se calcula la media (mean_rr) y la desviación estándar (std_rr) de los intervalos R-R.
+
+- La media indica el promedio de tiempo entre latidos → permite estimar la frecuencia cardíaca media.
+
+- La desviación estándar muestra cuánto varían esos intervalos → es una medida simple de HRV.
+
+- Muestra los valores numéricos de la media y la variabilidad de los intervalos R-R en consola.
+
+Se calcularon los intervalos R-R a partir de los picos detectados y se representaron gráficamente para observar su comportamiento a lo largo del tiempo. A partir de estos datos, se obtuvo la media y la desviación estándar,  identificando posibles patrones de regularidades o fluctuaciones relevantes.
 
 ![image](https://github.com/user-attachments/assets/271346e6-6ac6-4a10-9a0a-f345e3d83d60)
 
+Representa la duración de cada intervalo R-R. Ideal para detectar irregularidades en el ritmo cardíaco.
+
+## 7. Análisis de HRV con Wavelet
+En primer lugar la transformada wavelet analiza señales en tiempo y frecuencia a la vez, detecta cambios temporales en frecuencias, y es ideal para estudiar patrones VARIABLES como los latidos cardíacos.
+```python
+wavelet_type = 'morl'
+scales = np.arange(1, 1000)  # Más escalas , mayor resolución en la frecuencia es decir aumentar los valores (b)
+sampling_period = 1  
+
+coeffs, freqs = pywt.cwt(rr_intervalos, scales=np.arange(1, 1000), wavelet='morl', sampling_period=1)
+```
+- Define las escalas (inversas de frecuencia) que usará la transformada.
+
+- Cuanto más amplio sea este rango, mayor será la resolución en frecuencia del espectrograma.
+
+- Este rango cubre tanto frecuencias altas como bajas.
+
+
+## Se aplica la transformada wavelet continua (CWT):
+- Se usan muchas escalas (`np.arange(1, 1000)`) para obtener buena resolución en frecuencia.
+- La wavelet Morlet (`'morl'`) es una buena elección para análisis fisiológico.
+
+El espectrograma resultante permite observar la distribución de energía de los intervalos R-R a lo largo del tiempo y en distintas bandas de frecuencia:
+- **LF (0.04 - 0.15 Hz)**: refleja regulación simpática y parasimpática.
+- **HF (0.15 - 0.4 Hz)**: asociada a respiración y tono vagal.
+
+
+### Gráfica 5: Espectrograma de HRV (Wavelet)
+```python
+plt.imshow(np.abs(coeffs), extent=[0, len(rr_intervalos), freqs[-1], freqs[0]], aspect='auto')
+```
+
 ![image](https://github.com/user-attachments/assets/f4ff73ce-c025-49d7-8a8b-c188aabcdb18)
+
+
+nos muestra cómo varía la energía en diferentes frecuencias del HRV a lo largo del tiempo.ahora además tenemos bandas fisiológicas clave:
+- **LF** (0.04–0.15 Hz): modulación simpática y parasimpática.
+- **HF** (0.15–0.4 Hz): control vagal (respiratorio).
+
+
+*En el análisis de la variabilidad de la frecuencia cardíaca (HRV) se aplicó la Transformada Wavelet Continua (CWT) con la wavelet Morlet, permitiendo observar cómo varía la potencia espectral de los intervalos R-R a lo largo del tiempo. El espectrograma resultante mostró información  en diferentes escalas de frecuencia, incluyendo las bandas fisiológicas LF (0.04–0.15 Hz) y HF (0.15–0.4 Hz), lo que facilita identificar momentos donde se producen cambios significativos en la actividad autónoma. Se incluyeron líneas guía para delimitar dichas bandas y  proporcionando una visualización  completa del comportamiento dinámico del sistema nervioso autónomo.*
+
+---
+
+
+## Conclusión
+
+Estea practica nos es una herramienta completa para el análisis de señales ECG ya que nnos da desde la adquisición hasta el análisis espectral, aplica técnicas fundamentales de procesamiento digital de señales y la fisiología . Es especialmente útil para estudiar la variabilidad de la frecuencia cardíaca (HRV), un marcador importante en salud cardiovascular.
+
+## Preguntas
+- ¿Qué diferencias se observan entre los análisis en el dominio del tiempo y el 
+dominio tiempo-frecuencia?
+---
+R\ En el análisis en el dominio del tiempo, solo vemos cómo cambian los valores con respecto al tiempo. Por ejemplo, en nuestro caso, vimos los intervalos R-R y cómo varía la frecuencia cardíaca con el tiempo. lo cual es útil para detectar si n los latidos, están muy juntos o separados, pero no nos dice en qué frecuencias está variando la señal.
+En cambio, el análisis en el dominio tiempo-frecuencia, como el que hicimos con la transformada wavelet, nos deja ver cómo cambian las frecuencias a lo largo del tiempo. Esto es muy útil para señales como el ECG, porque la variabilidad del corazón no es constante. Con este análisis, podemos ver por ejemplo si en cierto momento hay más actividad en frecuencias bajas (lo que se asocia a relajación) o en frecuencias altas (lo que se asocia a estrés o actividad simpática).
+
+- ¿Qué efecto tiene el uso de diferentes funciones wavelet en los resultados del 
+análisis?
+---
+R\ Las wavelets nos dejan ver detalles de la señal en distintas escalas, cambiar el wavelet cambia esa "escala" en nuestro caso usamos la wavelet Morlet, que es buena para ver patrones suaves y continuos como los de la frecuencia cardíaca. Si usáramos otra wavelet,.
+
+- ¿Qué aplicaciones reales tiene esta práctica?
+---
+R\Esta practica de laboratorio puede tener aplicaciones precisamente en el campo de la cardiologia determinando si hay alguna sobre fatiga, sin embargo también puede tener aplicaciones en el campo de la psicologia determinando como reacción una persona a cierto estimulo psicologico o incluso en deportes para ver la fatoga del atleta.
+
+ 
+
+
+
+
+
+
+
+
